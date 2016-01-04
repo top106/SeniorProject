@@ -3,6 +3,7 @@
 #include "highgui.h"
 #include <iostream>
 #include <stdlib.h>
+#include <string.h>
 
 //using namespace cv
 
@@ -18,19 +19,20 @@ int main(int argc, char** argv)
     
     FILE *fp;
     char const* textfile = "D:\\Google Drive\\Senior Project\\test.txt";
-    fp = fopen(textfile, "w");
+    //fp = fopen(textfile, "w");
+    /// Open file for both reading and writing
+    fp = fopen(textfile, "w+");
     if(fp == NULL){
         printf("\nNão encontrei arquivo\n");
         //system("pause");
         exit(EXIT_FAILURE);
     }
-    char const* filename = "D:\\Google Drive\\Senior Project\\sample video.avi";
-    capture = cvCaptureFromAVI(filename); // read AVI video    
+    char const* avifile = "D:\\Google Drive\\Senior Project\\sample video.avi";
+    capture = cvCaptureFromAVI(avifile); // read AVI video    
     if( !capture )
         throw "Error when reading steam_avi";
 
     char c;
-    //cvNamedWindow( "original", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "small", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "w", 1 );
     
@@ -79,19 +81,31 @@ int main(int argc, char** argv)
         if( c == 27 ) break;
     }
     
-    printf("Enter frame number: ");
+    /*printf("Enter frame number: ");
     scanf("%d", &k);
     for(int i = 0; i < tmpsizeH; i++){
         for(int j = 0; j < tmpsizeW; j++){
             printf("B=%i, G=%i, R=%i\n", B[k][i][j], G[k][i][j], R[k][i][j]);
         }
         printf("\n");
+    }*/
+
+    printf("press enter to continue: ");
+    scanf("%c", &c);
+    /* Seek to the beginning of the file */
+    fseek(fp, SEEK_SET, 0);
+
+    /* Read and display data */
+    const int MAX_LINE = 100;
+    char buffer[MAX_LINE];
+    for(int i=0; i<5; i++){
+        fgets(buffer, MAX_LINE, fp);
+        printf("%d %s", i+1, buffer);
     }
     
     fclose(fp);
     cvWaitKey(0); // key press to close window
     cvDestroyWindow("w");
-    //cvDestroyWindow( "original" );
     cvDestroyWindow( "small" );
     cvReleaseImage(&frame);
     cvReleaseCapture( &capture );
