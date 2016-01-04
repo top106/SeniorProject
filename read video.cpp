@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 
     
     FILE *fp;
-    char const* textfile = "D:\\Google Drive\\Senior Project\\test.txt";
+    char const* textfile = "D:\\Google Drive\\SeniorProject\\test.txt";
     //fp = fopen(textfile, "w");
     /// Open file for both reading and writing
     fp = fopen(textfile, "w+");
@@ -27,7 +27,7 @@ int main(int argc, char** argv)
         //system("pause");
         exit(EXIT_FAILURE);
     }
-    char const* avifile = "D:\\Google Drive\\Senior Project\\sample video.avi";
+    char const* avifile = "D:\\Google Drive\\SeniorProject\\sample video.avi";
     capture = cvCaptureFromAVI(avifile); // read AVI video    
     if( !capture )
         throw "Error when reading steam_avi";
