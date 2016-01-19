@@ -4,8 +4,9 @@
 #include <iostream>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
-//using namespace cv
+using namespace cv;
 
 int main(int argc, char** argv)
 {
@@ -14,7 +15,7 @@ int main(int argc, char** argv)
     IplImage* frame_gray=0;
     IplImage* frame_bw=0;
     uchar b, g, r;
-
+    int i,j,k,f;
     
     FILE *fp;
     char const* textfile = "D:\\Google Drive\\SeniorProject\\test.txt";
@@ -32,13 +33,14 @@ int main(int argc, char** argv)
 
     char c;
     cvNamedWindow( "small", CV_WINDOW_AUTOSIZE );
-    cvNamedWindow( "gray", CV_WINDOW_AUTOSIZE );
+    //cvNamedWindow( "gray", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "bw", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "w", 1 );
-    const int reduce = 1;
+    
+    const int reduce = 2;
+    
     int width, height, widthStep, channels;
-    int k=0;
-    for( ; k<10 ; )
+    for(f=0 ; f<10 ; ++f)
     {
         frame = cvQueryFrame( capture );
         if(!frame)
@@ -63,45 +65,90 @@ int main(int argc, char** argv)
         width = tmpsize->width;
         widthStep = tmpsize->widthStep;
         channels = tmpsize->nChannels;
+        
+        cvShowImage("small", tmpsize);
 
-        for(int i = 0; i < height; i++){
-            for(int j = 0; j < width; j++){
+        /*for(i = 0; i < height; i++){
+            for(j = 0; j < width; j++){
                 //b = ((uchar *)(tmpsize->imageData + i*widthStep))[j*channels + 0]; // b
                 //g = ((uchar *)(tmpsize->imageData + i*widthStep))[j*channels + 1]; // g
                 //r = ((uchar *)(tmpsize->imageData + i*widthStep))[j*channels + 2]; // r
                 //B G R
                 //fprintf(fp, "%i %i %i\n", b, g, r);
             }
-        }
-        
-        for(i=2; i<S.height-2 ;i++)
-			for(j=2; j<S.width-2 ;j++)
+        }*/
+        Mat A (tmpsize);
+	
+		Size S = A.size();
+        uchar p[height][width][3];
+	
+		
+			for(i=0; i<S.height ;i++)
+			for(j=0; j<S.width ;j++)
 			for(k=0; k<3 ;k++)
-			p[i][j][k]=( 15*p[i][j][k]
+			p[i][j][k]=A.at<cv::Vec3b>(i,j)[k];
+		
+        
+        uchar d[height][width][3];
+        for(i=2; i<S.height-2 ;i++) {
+			for(j=2; j<S.width-2 ;j++) {
+                for(k=0; k<3 ;k++) {
+                    p[i][j][k] = ( 15*p[i][j][k]
 					     + 12*( p[i-1][j][k] + p[i+1][j][k] + p[i][j-1][k] + p[i][j+1][k] )
 					     + 9*(p[i-1][j-1][k]+p[i+1][j-1][k]+p[i-1][j+1][k]+p[i+1][j+1][k])
 					     + 5*(p[i-2][j][k]+p[i+2][j][k]+p[i][j-2][k]+p[i][j+2][k])
 					     + 2*(p[i-2][j-2][k]+p[i+2][j-2][k]+p[i-2][j+2][k]+p[i+2][j+2][k])
-					     + 4*(p[i-2][j-1][k]+p[i-2][j+1][k]+p[i+2][j-1][k]+p[i+2][j+1][k]+p[i-1][j-2][k]+p[i+1][j-2][k]+p[i-1][j+2][k]+p[i+1][j+2][k])
+					     + 4*( p[i-2][j-1][k]
+                               +p[i-2][j+1][k]
+                               +p[i+2][j-1][k]
+                               +p[i+2][j+1][k]
+                               +p[i-1][j-2][k]
+                               +p[i+1][j-2][k]
+                               +p[i-1][j+2][k]
+                               +p[i+1][j+2][k] )
 					     ) / 159;
+                }
+            }
+        }
 			
         for(i=1; i<S.height-1 ;i++)
 			for(j=1; j<S.width-1 ;j++)
                 for(k=0; k<3 ;k++)
-                    d[i][j][k] = Math.sqrt(Math.pow(p[i-1][j+1][k]+p[i+1][j+1][k]+p[i][j+1][k]*2-p[i-1][j-1][k]-p[i+1][j-1][k]-p[i][j-1][k]*2,2)+
-					     Math.pow(p[i+1][j+1][k]+p[i+1][j-1][k]+p[i+1][j][k]*2-p[i-1][j-1][k]-p[i-1][j+1][k]-p[i-1][j][k]*2,2));
+                    d[i][j][k] = (uchar) sqrt ( (double) ( 
+                               pow ( 
+                               (double) (p[i-1][j+1][k]+p[i+1][j+1][k]+p[i][j+1][k]*2-p[i-1][j-1][k]-p[i+1][j-1][k]-p[i][j-1][k]*2) 
+                               , 2.0)
+                               +  pow ( 
+                               (double) (p[i+1][j+1][k]+p[i+1][j-1][k]+p[i+1][j][k]*2-p[i-1][j-1][k]-p[i-1][j+1][k]-p[i-1][j][k]*2)
+                               , 2.0) 
+					           )
+                               );
 /////////////////////////////////////////////
 			
+        for(i=0; i<S.height ;i++)
+			for(j=0; j<S.width ;j++)
+                if( d[i][j][0]>10 && d[i][j][1]>10 && d[i][j][2]>10 ) {
+                    d[i][j][0]=255;
+                    d[i][j][1]=255;
+                    d[i][j][2]=255;
+                }
+			    else {
+                    d[i][j][0]=0;
+                    d[i][j][1]=0;
+                    d[i][j][2]=0;
+                }
+                //fprintf(fp, "\n------NEXT FRAME------\n\n");
+        Mat bw_image (height, width, CV_8UC1);
+		S = bw_image.size();
+		
 			for(i=0; i<S.height ;i++)
 			for(j=0; j<S.width ;j++)
-			if(d[i][j][0]>10&&d[i][j][1]>10&&d[i][j][2]>10){d[i][j][0]=255;d[i][j][1]=255;d[i][j][2]=255;}
-			else {d[i][j][0]=0;d[i][j][1]=0;d[i][j][2]=0;}
+			//for(k=0; k<3 ;k++)
+			bw_image.at<uchar>(i,j) = d[i][j][0];
         
-        ++k;
+        
 
-        fprintf(fp, "\n------NEXT FRAME------\n\n");
-
-        cvShowImage("small", frame);
+        imshow("bw", bw_image);
 
         c = cvWaitKey(33);
         if( c == 27 ) break;
@@ -133,7 +180,7 @@ int main(int argc, char** argv)
     cvWaitKey(0); // key press to close window
     cvDestroyWindow("w");
     cvDestroyWindow("bw");
-    cvDestroyWindow( "gray" );
+    //cvDestroyWindow( "gray" );
     cvDestroyWindow( "small" );
     cvReleaseImage(&frame);
     cvReleaseCapture( &capture );
