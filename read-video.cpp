@@ -122,9 +122,9 @@ int main(int argc, char** argv)
 
         for(i=0; i<S.height ;i++) 
         for(j=0; j<S.width ;j++) 
-        if(p[i][j][1]>p[i][j][2]&&p[i][j][2]>p[i][j][0])
-        {g[i][j][0]=p[i][j][0];g[i][j][1]=p[i][j][1];g[i][j][2]=p[i][j][2];}
-        else {g[i][j][0]=0;g[i][j][1]=0;g[i][j][2]=0;}
+        if(p[i][j][1]<p[i][j][2]+10 || p[i][j][1]<p[i][j][0]+10)
+        //{g[i][j][0]=p[i][j][0];g[i][j][1]=p[i][j][1];g[i][j][2]=p[i][j][2];}
+        {p[i][j][0]=0;p[i][j][1]=0;p[i][j][2]=0;}
 
 			
         for(i=1; i<S.height-1 ;i++)
@@ -149,14 +149,13 @@ int main(int argc, char** argv)
 			for(j=0; j<S.width ;j++)
                 if( d[i][j][0]>tsh && d[i][j][1]>tsh && d[i][j][2]>tsh ) {
                     d[i][j][0]=255;
-                    //d[i][j][1]=255;
-                    //d[i][j][2]=255;
+                    d[i][j][1]=255;
+                    d[i][j][2]=255;
                 }
 			    else {
                     d[i][j][0]=0;
-                    //d[i][j][1]=0;
-                    //d[i][j][2]=0;
-  
+                    d[i][j][1]=0;
+                    d[i][j][2]=0;
                 }
 /*   
         int a,e,I,J,r,R;        
@@ -260,7 +259,7 @@ int main(int argc, char** argv)
 			for(i=0; i<S.height ;i++)
 			for(j=0; j<S.width ;j++)
 			for(k=0; k<3 ;k++)
-			bw_image.at<uchar>(i,j) = g[i][j][k];
+			bw_image.at<uchar>(i,j) = d[i][j][k];
         
         //probabilistic Hough transform
         vector<Vec4i> lines;
