@@ -94,6 +94,7 @@ int main(int argc, char** argv)
 		
         
         uchar d[height][width][3];
+        uchar g[height][width][3];
         uchar D[height][width][3];
         uchar t[height][width][3];
 
@@ -118,6 +119,12 @@ int main(int argc, char** argv)
                 }
             }
         }
+        
+        for(i=0; i<S.height ;i++) 
+        for(j=0; j<S.width ;j++) 
+        if(p[i][j][1]>p[i][j][2]&&p[i][j][2]>p[i][j][0])
+        {g[i][j][0]=p[i][j][0];g[i][j][1]=p[i][j][1];g[i][j][2]=p[i][j][2];}
+        else {g[i][j][0]=0;g[i][j][1]=0;g[i][j][2]=0;}
 			
         for(i=1; i<S.height-1 ;i++)
 			for(j=1; j<S.width-1 ;j++)
@@ -226,7 +233,7 @@ int main(int argc, char** argv)
 			
 			for(k=0; k<=360 ;k++)
 			for(l=0; l<=max ;l++)
-			  if(h[k][l]>S.width/2)
+			  if(h[k][l]>S.height/2)
 			  {
                 //printf("%d %d\n",k,l);break;
 				for(i=0; i<S.height ;i++)
@@ -234,17 +241,18 @@ int main(int argc, char** argv)
 				if(d[i][j][0]==255 && l==(int) (j*cos(k*PI/180)+i*sin(k*PI/180)+S.height+S.width))
 				{D[i][j][0]=255;D[i][j][1]=255;D[i][j][2]=255;}
 			    c++;
-			    break;
+    			break;
 			  }	
 ////////////////////////////////////////
         //fprintf(fp, "\n------NEXT FRAME------\n\n");
         Mat bw_image (height, width, CV_8UC1);
 		S = bw_image.size();
 		
+		
 			for(i=0; i<S.height ;i++)
 			for(j=0; j<S.width ;j++)
-			//for(k=0; k<3 ;k++)
-			bw_image.at<uchar>(i,j) = D[i][j][0];
+			for(k=0; k<3 ;k++)
+			bw_image.at<uchar>(i,j) = g[i][j][k];
         
         
 
