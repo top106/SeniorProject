@@ -37,7 +37,6 @@ int main(int argc, char** argv)
 
     char c;
     cvNamedWindow( "small", CV_WINDOW_AUTOSIZE );
-    //cvNamedWindow( "gray", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "bw", CV_WINDOW_AUTOSIZE );
     //cvNamedWindow( "w", 1 );
     
@@ -267,16 +266,32 @@ int main(int argc, char** argv)
         vector<Vec4i> lines;
         HoughLinesP(bw_image, lines, 5, CV_PI/180, 50, 100, 10 );
         
-
+        
         //draw lines
         for( size_t i = 0; i < lines.size(); i++ ) {
             Vec4i l = lines[i];
             line( A, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 1, CV_AA);
         }
         
-        std::cout << lines.size() << "\n";
+        //Hough Circle Transform
+        vector<Vec3f> circles;
+        HoughCircles( bw_image, circles, CV_HOUGH_GRADIENT, 1, A.rows/8, 200, 100, 1, 50 );
+        
+        
+        //draw the circles
+        for( size_t i = 0; i < circles.size(); i++ ) {
+            Point center(cvRound(circles[i][0]), cvRound(circles[i][1]));
+            int radius = cvRound(circles[i][2]);
+            // circle center
+            circle( A, center, 3, Scalar(255,255,255), -1, 8, 0 );
+            // circle outline
+            circle( A, center, radius, Scalar(255,0,0), 3, 8, 0 );
+        }
+        
+        std::cout << lines.size() << " " << circles.size() << "\n";
         imshow("small", A);
         imshow("bw", bw_image);
+        
         
         c = cvWaitKey(33);
         if( c == 27 ) break;
@@ -308,7 +323,6 @@ int main(int argc, char** argv)
     cvWaitKey(0); // key press to close window
     //cvDestroyWindow("w");
     cvDestroyWindow("bw");
-    //cvDestroyWindow( "gray" );
     cvDestroyWindow( "small" );
     cvReleaseImage(&frame);
     cvReleaseCapture( &capture );
