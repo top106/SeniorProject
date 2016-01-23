@@ -22,7 +22,7 @@ int main(int argc, char** argv)
     int i,j,k,f;
     
     FILE *fp;
-    char const* textfile = "D:\\Study\\Project\\Code\\test.txt";
+    char const* textfile = "test.txt";
 
     fp = fopen(textfile, "w+");
     if(fp == NULL){
@@ -30,7 +30,7 @@ int main(int argc, char** argv)
         //system("pause");
         exit(EXIT_FAILURE);
     }
-    char const* avifile = "D:\\Study\\Project\\Code\\2.mp4";
+    char const* avifile = "D:\\Google Drive\\SeniorProject\\2.mp4";
     capture = cvCaptureFromAVI(avifile); // read AVI video    
     if( !capture )
         throw "Error when reading steam_avi";
@@ -40,6 +40,7 @@ int main(int argc, char** argv)
     //cvNamedWindow( "gray", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "bw", CV_WINDOW_AUTOSIZE );
     //cvNamedWindow( "w", 1 );
+    cvNamedWindow( "gauss", CV_WINDOW_AUTOSIZE );
     
     const int reduce = 2;
     
@@ -118,6 +119,15 @@ int main(int argc, char** argv)
                 }
             }
         }
+        
+        Mat gauss (height, width, CV_8UC3);
+        for(i=0; i<S.height ;i++)
+			for(j=0; j<S.width ;j++)
+			for(k=0; k<3 ;k++)
+			gauss.at<cv::Vec3b>(i,j)[k] = p[i][j][k];
+        imshow("guass",gauss);
+        
+        
 			
         for(i=1; i<S.height-1 ;i++)
 			for(j=1; j<S.width-1 ;j++)
@@ -139,13 +149,13 @@ int main(int argc, char** argv)
 			for(j=0; j<S.width ;j++)
                 if( d[i][j][0]>tsh && d[i][j][1]>tsh && d[i][j][2]>tsh ) {
                     d[i][j][0]=255;
-                    d[i][j][1]=255;
-                    d[i][j][2]=255;
+                    //d[i][j][1]=255;
+                    //d[i][j][2]=255;
                 }
 			    else {
                     d[i][j][0]=0;
-                    d[i][j][1]=0;
-                    d[i][j][2]=0;
+                    //d[i][j][1]=0;
+                    //d[i][j][2]=0;
   
                 }
 /*   
@@ -232,7 +242,9 @@ int main(int argc, char** argv)
 				for(i=0; i<S.height ;i++)
 				for(j=0; j<S.width ;j++)
 				if(d[i][j][0]==255 && l==(int) (j*cos(k*PI/180)+i*sin(k*PI/180)+S.height+S.width))
-				{D[i][j][0]=255;D[i][j][1]=255;D[i][j][2]=255;}
+				{D[i][j][0]=255;
+                //D[i][j][1]=255;D[i][j][2]=255;
+                }
 			    c++;
 			    break;
 			  }	
@@ -282,6 +294,7 @@ int main(int argc, char** argv)
     cvDestroyWindow("bw");
     //cvDestroyWindow( "gray" );
     cvDestroyWindow( "small" );
+    cvDestroyWindow( "gauss" );
     cvReleaseImage(&frame);
     cvReleaseCapture( &capture );
 }
