@@ -40,7 +40,6 @@ int main(int argc, char** argv)
     //cvNamedWindow( "gray", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "bw", CV_WINDOW_AUTOSIZE );
     //cvNamedWindow( "w", 1 );
-    cvNamedWindow( "gauss", CV_WINDOW_AUTOSIZE );
     
     const int reduce = 2;
     
@@ -71,7 +70,6 @@ int main(int argc, char** argv)
         widthStep = tmpsize->widthStep;
         channels = tmpsize->nChannels;
         
-        cvShowImage("small", tmpsize);
 
         /*for(i = 0; i < height; i++){
             for(j = 0; j < width; j++){
@@ -83,7 +81,7 @@ int main(int argc, char** argv)
             }
         }*/
         Mat A (tmpsize);
-	
+	    //imshow("small", A);
 		Size S = A.size();
         uchar p[height][width][3];
 	
@@ -95,6 +93,7 @@ int main(int argc, char** argv)
 		
         
         uchar d[height][width][3];
+        uchar g[height][width][3];
         uchar D[height][width][3];
         uchar t[height][width][3];
 
@@ -120,14 +119,14 @@ int main(int argc, char** argv)
             }
         }
         
-        Mat gauss (height, width, CV_8UC3);
-        for(i=0; i<S.height ;i++)
-			for(j=0; j<S.width ;j++)
-			for(k=0; k<3 ;k++)
-			gauss.at<cv::Vec3b>(i,j)[k] = p[i][j][k];
-        imshow("guass",gauss);
         
-        
+
+        for(i=0; i<S.height ;i++) 
+        for(j=0; j<S.width ;j++) 
+        if(p[i][j][1]>p[i][j][2]&&p[i][j][2]>p[i][j][0])
+        {g[i][j][0]=p[i][j][0];g[i][j][1]=p[i][j][1];g[i][j][2]=p[i][j][2];}
+        else {g[i][j][0]=0;g[i][j][1]=0;g[i][j][2]=0;}
+
 			
         for(i=1; i<S.height-1 ;i++)
 			for(j=1; j<S.width-1 ;j++)
@@ -141,6 +140,8 @@ int main(int argc, char** argv)
                                , 2.0) 
 					           )
                                );
+                            
+        
 /////////////////////////////////////////////
 			
         const int tsh = 30;
@@ -221,7 +222,7 @@ int main(int argc, char** argv)
         }
 */
 ////////////////////////////////////////
-        int max=0,l;                                
+        /*int max=0,l;                                
         for(i=0; i<S.height ;i++)
 			for(j=0; j<S.width ;j++)
 			  if(d[i][j][0]==255)
@@ -234,9 +235,9 @@ int main(int argc, char** argv)
 				}
 			  }
 			
-			for(k=0; k<=360 ;k++)
+        for(k=0; k<=360 ;k++)
 			for(l=0; l<=max ;l++)
-			  if(h[k][l]>S.width/2)
+			  if(h[k][l]>S.height/2)
 			  {
                 //printf("%d %d\n",k,l);break;
 				for(i=0; i<S.height ;i++)
@@ -246,22 +247,37 @@ int main(int argc, char** argv)
                 //D[i][j][1]=255;D[i][j][2]=255;
                 }
 			    c++;
-			    break;
+    			break;
 			  }	
+		*/
+        
+			  
 ////////////////////////////////////////
         //fprintf(fp, "\n------NEXT FRAME------\n\n");
         Mat bw_image (height, width, CV_8UC1);
 		S = bw_image.size();
 		
+		
 			for(i=0; i<S.height ;i++)
 			for(j=0; j<S.width ;j++)
-			//for(k=0; k<3 ;k++)
-			bw_image.at<uchar>(i,j) = D[i][j][0];
+			for(k=0; k<3 ;k++)
+			bw_image.at<uchar>(i,j) = g[i][j][k];
         
+        //probabilistic Hough transform
+        vector<Vec4i> lines;
+        HoughLinesP(bw_image, lines, 5, CV_PI/180, 50, 100, 10 );
         
 
+        //draw lines
+        for( size_t i = 0; i < lines.size(); i++ ) {
+            Vec4i l = lines[i];
+            line( A, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 1, CV_AA);
+        }
+        
+        std::cout << lines.size() << "\n";
+        imshow("small", A);
         imshow("bw", bw_image);
-
+        
         c = cvWaitKey(33);
         if( c == 27 ) break;
     }
@@ -294,7 +310,6 @@ int main(int argc, char** argv)
     cvDestroyWindow("bw");
     //cvDestroyWindow( "gray" );
     cvDestroyWindow( "small" );
-    cvDestroyWindow( "gauss" );
     cvReleaseImage(&frame);
     cvReleaseCapture( &capture );
 }
