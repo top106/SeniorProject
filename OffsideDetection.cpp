@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     IplImage* frame_gray=0;
     CvCapture* capture=0;
     char key;  
-    const int reduce = 2;
+    const int reduce = 1;
     int i,j,k,width, height, widthStep, channels;
    
     char const* avifile = "D:\\Google Drive\\SeniorProject\\2.mp4";
@@ -78,7 +78,7 @@ int main(int argc, char** argv)
     cvNamedWindow( "bw", CV_WINDOW_AUTOSIZE );
           
     
-    for(int framePointer=0 ; framePointer<1000 ; ++framePointer)
+    for(int framePointer=0 ; framePointer<100 ; ++framePointer)
     {
         frame = cvQueryFrame( capture );
         if(!frame)break;
@@ -95,14 +95,14 @@ int main(int argc, char** argv)
 		matSize = myMat.size();
         	
 		
-		for(i=0; i<matSize.height ;i++)
-		for(j=0; j<matSize.width ;j++)
+		for(i=0; i<height ;i++)
+		for(j=0; j<width ;j++)
 		for(k=0; k<3 ;k++)
 		origin[i][j][k]=myMat.at<cv::Vec3b>(i,j)[k];
 		
         
-        for(i=2; i<matSize.height-2 ;i++)
-        for(j=2; j<matSize.width-2 ;j++)
+        for(i=2; i<height-2 ;i++)
+        for(j=2; j<width-2 ;j++)
         for(k=0; k<3 ;k++) 
         //gaussian[i][j][k] = origin[i][j][k];        
         gaussian[i][j][k] = ( 41*origin[i][j][k]
@@ -114,15 +114,15 @@ int main(int argc, char** argv)
                             ) /273;       
         
 
-        for(i=0; i<matSize.height ;i++) 
-        for(j=0; j<matSize.width ;j++) 
+        for(i=0; i<height ;i++) 
+        for(j=0; j<width ;j++) 
         if(gaussian[i][j][1]>gaussian[i][j][2]+10 && gaussian[i][j][1]>gaussian[i][j][0]+10)
         {grass[i][j][0]=gaussian[i][j][0];grass[i][j][1]=gaussian[i][j][1];grass[i][j][2]=gaussian[i][j][2];}
         else {grass[i][j][0]=0;grass[i][j][1]=0;grass[i][j][2]=0;}
 
 			
-        for(i=1; i<matSize.height-1 ;i++)
-        for(j=1; j<matSize.width-1 ;j++)
+        for(i=1; i<height-1 ;i++)
+        for(j=1; j<width-1 ;j++)
         for(k=0; k<3 ;k++)
         gradient[i][j][k] = sqrt ( (double) ( 
                                pow ( 
@@ -135,8 +135,8 @@ int main(int argc, char** argv)
                                
 			
         const int tshGD = 30;
-        for(i=0; i<matSize.height ;i++)
-        for(j=0; j<matSize.width ;j++)
+        for(i=0; i<height ;i++)
+        for(j=0; j<width ;j++)
         if(gradient[i][j][0]>tshGD && gradient[i][j][1]>tshGD && gradient[i][j][2]>tshGD) 
         {tshGradient[i][j][0]=255;tshGradient[i][j][1]=255;tshGradient[i][j][2]=255;}
         else {tshGradient[i][j][0]=0;tshGradient[i][j][1]=0;tshGradient[i][j][2]=0;}
@@ -144,13 +144,13 @@ int main(int argc, char** argv)
 
         Mat bw_image (height, width, CV_8UC1);
 		matSize = bw_image.size();
-		for(i=0; i<matSize.height ;i++)
-		for(j=0; j<matSize.width ;j++)
+		for(i=0; i<height ;i++)
+		for(j=0; j<width ;j++)
 		for(k=0; k<3 ;k++)
         bw_image.at<uchar>(i,j) = tshGradient[i][j][k];    
        
         vector<Vec4i> lines;
-        HoughLinesP(bw_image, lines, 5, CV_PI/180, 50, 100, 5 );
+        HoughLinesP(bw_image, lines, 5, CV_PI/180, 50, 70, 5 );
         
 ///////////////////////////////////////////////////////////////////////////////        
         //find slope of each lines
@@ -158,8 +158,9 @@ int main(int argc, char** argv)
         double c[1000];
         for( i = 0; i < lines.size(); i++ ) {
              Vec4i l = lines[i];
-             m[i] = (double)(l[1]-l[3])/(l[2]-l[0]);
+             m[i] = (double)(l[3]-l[1])/(l[2]-l[0]);
              c[i] = l[1]-m[i]*l[0];
+         //    std::cout<<l[0]<<" "<<l[1]<<" "<<l[2]<<" "<<l[3]<<" : "<<m[i]<<" "<<c[i]<<"\n";
         }
         
         //find real field line
@@ -185,14 +186,37 @@ int main(int argc, char** argv)
              else {M[fieldLineSize]=m[i];C[fieldLineSize++]=c[i];}
         }
 ///////////////////////////////////////////////////////////////////////////////////////////
-
-        //draw lines
-        for(i=0; i<lines.size() ;i++) 
+        //for(i=0;i<fieldLineSize;i++)
+        //std::cout<<M[i]<<" ";
+        //std::cout<<"\n";
+        
+        for(i=0;i<fieldLineSize;i++)
         {
-            Vec4i l = lines[i];
-            line( myMat, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 1, CV_AA);
-            //std::cout << m[i] << " ";
+           int intersectX = -C[i]/M[i];
+           int intersectY = C[i];
+                  
+           std::cout<<C[i]<<" "<<M[i]<<" "<<intersectX<<" "<<intersectY<<"\n";
+           int x1=intersectX;
+           int y1=0;
+           int x2=0;
+           int y2=intersectY;
+           
+           if(intersectX<0 && intersectY>=0 && intersectY<=height)
+              {y1=height; x1= (y1-C[i])/M[i];}
+           else if(intersectY<0 && intersectX>=0 && intersectX<=width)
+              {y2=height; x2= (y2-C[i])/M[i];}
+           
+           
+           line(myMat,Point(x1,y1),Point(x2,y2),Scalar(0,0,255),1,CV_AA);
         }
+        
+        //draw lines
+        //for(i=0; i<lines.size() ;i++) 
+        //{
+        //    Vec4i l = lines[i];
+        //    line( myMat, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0,0,255), 1, CV_AA);
+        //    //std::cout << m[i] << " ";
+        //}
         //std::cout << "\n";
         
         findPlayer();
