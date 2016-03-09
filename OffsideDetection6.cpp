@@ -255,7 +255,7 @@ bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r)
 bool isInSameGroup(Vec4i x, vector<Vec4i> groupLines) 
 {
     double m,c;
-    const double trsh = 20.0;
+    const double trsh = 50.0;
     for(int i=0; i<groupLines.size(); i++){
         Vec4i L = groupLines[i];
         L[1]*=-1; L[3]*=-1;
@@ -347,7 +347,7 @@ void findVerticalLine()
             continue;
         }
         m = (double)(y1-y2)/(x2-x1);
-        const double vertSlopeTrsh = 0.5;
+        const double vertSlopeTrsh = 0.8;
         if(m > vertSlopeTrsh || m < -vertSlopeTrsh) {
             vertLines.push_back(l);
             c++;
@@ -374,7 +374,7 @@ void findVerticalLine()
     for(int i = 0; i < vertLines.size(); i++) {
         l = vertLines[i];
         x1=l[0]; y1=l[1]; x2=l[2]; y2=l[3];
-        line(myMat,Point(x1,y1),Point(x2,y2),Scalar(255,255,0),1,CV_AA);
+        line(myMat,Point(x1,y1),Point(x2,y2),Scalar(102,0,102),1,CV_AA);
         circle(myMat, Point(x1,y1), 3, Scalar(255,0,0), -1);
         circle(myMat, Point(x2,y2), 3, Scalar(255,0,0), -1);
         cout<<x1<<" "<<y1<<" "<<x2<<" "<<y2<<endl;
@@ -508,7 +508,7 @@ int main(int argc, char** argv)
 		for(j=0; j<width ;j++)
         bw_image.at<uchar>(i,j) = tshGradient[i][j][0];
        
-        HoughLinesP(bw_image, lines, 5, CV_PI/180, 150, 150, 10 );
+        HoughLinesP(bw_image, lines, 5, CV_PI/180, 100, 100, 10 );
         
         findVerticalLine();
         
@@ -524,16 +524,6 @@ int main(int argc, char** argv)
         bw_image.at<uchar>(i,j) = tshGradient[i][j][k];
         imshow("small", myMat);
         imshow("bw", bw_image);
-        
-        for(int i=0; i<lines.size(); i++) {
-            int x1 = lines[i][0];
-            int y1 = lines[i][1];
-            int x2 = lines[i][2];
-            int y2 = lines[i][3];
-            line(myMat,Point(x1,y1),Point(x2,y2),Scalar(0,0,255),1,CV_AA);
-            circle(myMat, Point(x1,y1), 3, Scalar(255,0,0), -1);
-            circle(myMat, Point(x2,y2), 3, Scalar(255,0,0), -1);
-        }
         
         lines.clear();
         fieldLines.clear();
