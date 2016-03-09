@@ -374,9 +374,9 @@ void findVerticalLine()
     for(int i = 0; i < vertLines.size(); i++) {
         l = vertLines[i];
         x1=l[0]; y1=l[1]; x2=l[2]; y2=l[3];
-        //line(myMat,Point(x1,y1),Point(x2,y2),Scalar(0,0,255),1,CV_AA);
-        //circle(myMat, Point(x1,y1), 3, Scalar(255,0,0), -1);
-        //circle(myMat, Point(x2,y2), 3, Scalar(255,0,0), -1);
+        line(myMat,Point(x1,y1),Point(x2,y2),Scalar(255,255,0),1,CV_AA);
+        circle(myMat, Point(x1,y1), 3, Scalar(255,0,0), -1);
+        circle(myMat, Point(x2,y2), 3, Scalar(255,0,0), -1);
         cout<<x1<<" "<<y1<<" "<<x2<<" "<<y2<<endl;
     }
     
