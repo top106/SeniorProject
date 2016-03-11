@@ -13,7 +13,7 @@ using namespace cv;
 using namespace std;
 
 Size matSize;
-int width, height, widthStep, channels;
+int width, height, widthStep, channels, framePointer;
 int origin[1000][2000][3];
 int grass[1000][2000][3];
 int gaussian[1000][2000][3];
@@ -32,38 +32,67 @@ vector< vector<Vec4i> > groupLines;
 vector<Vec4i> vertLines;
 vector<Vec4i> prevVertLines;
 Point2f intPoint;
+int IBall,JBall,lastR;
 const int NA = -1;
 const int LEFT = 0;
 const int RIGHT = 1;
 int offenseDirection = NA;
 Vec4i leftMargin, rightMargin;
-
+int sameTeam[1000],manySameTeam[1000],MST;
+int numArea,numManySameTeam,R[1000],G[1000],B[1000],X[1000],Y[1000],team[1000],area[100],Harea[100],Warea[100];     
 int abs(int x,int y){if(x>y)return x-y;else return y-x;} 
+
+
   
+  
+void findOffsidePlayer()
+{
+     int i,j,k,I,min=-1;     
+     for(i=0;i<numManySameTeam;i++)
+     {
+        MST = manySameTeam[i];
+        if(abs(X[MST]-JBall)+abs(Y[MST]-IBall)<min||min==-1){min=abs(X[MST]-JBall)+abs(Y[MST]-IBall);I=MST;}
+     }
+     //printf("%d %d\n",X[I],Y[I]);
+     for(i=0;i<numManySameTeam;i++)
+     {
+        MST = manySameTeam[i];
+        if(team[MST]==team[I])
+        for(j=0;j<area[i];j++)
+        for(k=0;k<3;k++)
+        tshGradient[pI[i][j]][pJ[i][j]][k]=120;
+     }
+}
+
+
 void findPlayer()
 {
-     int A,I,J,i,j,k,r,p;
-     int R[1000],G[1000],B[1000],X[1000],Y[1000],team[1000],area[100],Harea[100];
+     int A,I,J,i,j,k,l,r,p,z;
      int H=matSize.height,W=matSize.width;
-     int numArea=0,MinH=H,max;
+     int MinH=H,max,maxJ,minJ,count;
+     numArea=0;numManySameTeam=0;
      
      for(i=0;i<H;i++)
      for(j=0;j<W;j++)
      {mark[i][j]=0;mark2[i][j]=0;}
      
-     for(i=0;i<H;i++)
+     for(i=H-1;i>=0;i--)
      for(j=0;j<W;j++)
      {
         if(tshGradient[i][j][0]==0&&mark[i][j]==0)
         {
            r=0;p=0;max=0;
+           minJ=W;maxJ=0;
            mark[i][j]=0; 
            qI[r]=i;qJ[r]=j;r++;            
            
            while(p<r)
            {
                I=qI[p];J=qJ[p];p++;
-               if(I-i>max)max=I-i;
+               if(i-I>max)max=i-I;
+               if(J>maxJ)maxJ=J;
+               if(J<minJ)minJ=J;
+               
                if(J+1<W){if(tshGradient[I][J+1][0]==0&&mark[I][J+1]==0){qI[r]=I;qJ[r]=J+1;mark[qI[r]][qJ[r]]=1;r++;}}
                if(J-1>=0){if(tshGradient[I][J-1][0]==0&&mark[I][J-1]==0){qI[r]=I;qJ[r]=J-1;mark[qI[r]][qJ[r]]=1;r++;}}
                if(I+1<H){if(tshGradient[I+1][J][0]==0&&mark[I+1][J]==0){qI[r]=I+1;qJ[r]=J;mark[qI[r]][qJ[r]]=1;r++;}}
@@ -72,22 +101,26 @@ void findPlayer()
            
            if(10<r && r<2000)
            {
-               Harea[numArea]=max;
-               area[numArea]=r;
-               X[numArea]=j;
-               Y[numArea]=i;
-               
-               for(k=0;k<r;k++)
-               {pI[numArea][k]=qI[k];pJ[numArea][k]=qJ[k];}
-               numArea++;     
+               if(100<r && r<500)
+               {
+                   Harea[numArea]=max;
+                   Warea[numArea]=maxJ-minJ;
+                   area[numArea]=r;
+                   X[numArea]=j;
+                   Y[numArea]=i;
+                   
+                   for(k=0;k<r;k++)
+                   {pI[numArea][k]=qI[k];pJ[numArea][k]=qJ[k];}
+                   numArea++;
+               }     
                
                r=0;p=0;
-               qI[r]=i-1;qJ[r]=j;r++;
+               qI[r]=i+1;qJ[r]=j;r++;
                mark2[i-1][j]=0;
                while(p<r)
                {
                   I=qI[p];J=qJ[p];p++;
-                  tshGradient[I][J][0]=1;tshGradient[I][J][1]=1;tshGradient[I][J][2]=1;
+                  tshGradient[I][J][0]=253;tshGradient[I][J][1]=253;tshGradient[I][J][2]=253;
                   if(J+1<W){if(tshGradient[I][J+1][0]==255&&mark2[I][J+1]==0){qI[r]=I;qJ[r]=J+1;mark2[qI[r]][qJ[r]]=1;r++;}}
                   if(J-1>=0){if(tshGradient[I][J-1][0]==255&&mark2[I][J-1]==0){qI[r]=I;qJ[r]=J-1;mark2[qI[r]][qJ[r]]=1;r++;}}
                   if(I+1<H){if(tshGradient[I+1][J][0]==255&&mark2[I+1][J]==0){qI[r]=I+1;qJ[r]=J;mark2[qI[r]][qJ[r]]=1;r++;}}
@@ -97,9 +130,43 @@ void findPlayer()
            }
         }   
      }
+    
+     int wa,ha,aa;
+     max=0;
+     for(i=0;i<numArea;i++)
+     {
+        count=0;
+        for(j=0;j<numArea;j++)
+        if(abs(area[i]-area[j])<50)count++;
+        if(count>max){max=count;aa=area[i];wa=Warea[i];ha=Harea[i];}
+     }
      
-     
-     /*
+     for(i=H-1;i>=ha;i--)
+     for(j=0;j<W-wa;j++)
+     {
+        count=0;
+        for(k=i;k>=i-ha;k--)
+        for(l=j;l<=j+wa;l++)
+        if(tshGradient[k][l][0]==253)count++;
+        if(count*100>aa*90)
+        {
+           Harea[numArea]=ha;
+           Warea[numArea]=wa;
+           area[numArea]=count;
+           X[numArea]=j;
+           Y[numArea]=i;
+           
+           z=0;
+           for(k=i;k>=i-ha;k--)
+           for(l=j;l<=j+wa;l++)
+           if(tshGradient[k][l][0]==253)
+           {tshGradient[k][l][0]=252;tshGradient[k][l][1]=252;tshGradient[k][l][2]=252;
+           pI[numArea][z]=k;pJ[numArea][z++]=l;}
+           numArea++;
+        }
+     }
+      
+      
      max=0;
      for(i=0;i<numArea;i++)
      {
@@ -112,13 +179,13 @@ void findPlayer()
      int min=Harea[I];
      for(i=0;i<numArea;i++)
      if(abs(Harea[i]-Harea[I])<30&&Harea[i]<min)min=Harea[i];
-     */
+     
      
      //for(i=0;i<numArea;i++)
      //if(abs(Harea[i]-Harea[I])<30)
      //for(k=0;k<area[i];k++){tshGradient[pI[i][k]][pJ[i][k]][0]=120;tshGradient[pI[i][k]][pJ[i][k]][1]=120;tshGradient[pI[i][k]][pJ[i][k]][2]=120;}
      
-/*     
+    
      for(i=0;i<numArea;i++)
      //if(abs(Harea[i]-Harea[I])<30)
      {
@@ -129,17 +196,14 @@ void findPlayer()
          {B[i]+=origin[pI[i][k]][pJ[i][k]][0];G[i]+=origin[pI[i][k]][pJ[i][k]][1];R[i]+=origin[pI[i][k]][pJ[i][k]][2];A++;}
                      
          R[i]/=A;G[i]/=A;B[i]/=A;
-         printf("%d: (%d,%d) [%d,%d,%d]   ",framePointer,X[i],Y[i],R[i],G[i],B[i]);
+         //printf("%d: (%d,%d) [%d,%d,%d]   ",framePointer,X[i],Y[i],R[i],G[i],B[i]);
      }
 
      
-     int tsh=40;
-     int numManySameTeam=0;
-     int sameTeam[1000];
-     int manySameTeam[1000],MST;
+     int tsh=50;
      for(i=0;i<numArea;i++)
      {
-        int count=0;
+        count=0;
         for(j=0;j<numArea;j++)
         if(abs(R[i]-R[j])+abs(G[i]-G[j])+abs(B[i]-B[j])<tsh)count++;
         sameTeam[i]=count;
@@ -177,13 +241,13 @@ void findPlayer()
            tshGradient[Y[MST]-1][j][0]=120;tshGradient[Y[MST]-1][j][1]=120;tshGradient[Y[MST]-1][j][2]=120;
            tshGradient[Y[MST]+1][j][0]=120;tshGradient[Y[MST]+1][j][1]=120;tshGradient[Y[MST]+1][j][2]=120;}
         else if(team[MST]==J)
-           for(j=Y[MST];j<=Y[MST]+50;j++)
+           for(j=Y[MST];j>=Y[MST]-50;j--)
            {tshGradient[j][X[MST]][0]=120;tshGradient[j][X[MST]][1]=120;tshGradient[j][X[MST]][2]=120;
            tshGradient[j][X[MST]-1][0]=120;tshGradient[j][X[MST]-1][1]=120;tshGradient[j][X[MST]-1][2]=120;
            tshGradient[j][X[MST]+1][0]=120;tshGradient[j][X[MST]+1][1]=120;tshGradient[j][X[MST]+1][2]=120;}
      }
      //printf(".");
-*/
+
 }
 
 
@@ -191,38 +255,51 @@ void findPlayer()
 void findBall()
 {
      int iBall,jBall;
-     int i,j,k,l,r=7,score;
+     int i,j,k,l,r,R,score,numCircle;
      int H=matSize.height;
      int W=matSize.width;
      double BB,GG,RR,DD=0;
      
-     for(i=r;i<H-r;i++)
-     for(j=r;j<W-r;j++)
+     for(r=0;r<=20;r++)
      {
-        score=0;
-        /*BB=0;GG=0;RR=0;DD=0;
-        for(k=i-r;k<=i+r;k++)
-        for(l=j-r;l<=j+r;l++)
-        if((k-i)*(k-i)+(l-j)*(l-j)<=r*r)
-        {BB+=origin[k][l][0];GG+=origin[k][l][1];RR+=origin[k][l][2];DD++;}*/
-        
-        for(k=i-r;k<=i+r;k++)
-        for(l=j-r;l<=j+r;l++)
-        if((k-i)*(k-i)+(l-j)*(l-j)<=r*r){if(tshGradient[k][l][0]==255)score++;}
-        else{if(tshGradient[k][l][0]==0||tshGradient[k][l][0]==1)score++;}
-           
-        if(score*100>r*r*4*90)
-        {
-           iBall = i;
-           jBall = j;
-           //printf("%d %d",i,j);
-           for(k=i-r;k<=i+r;k++)
-           for(l=j-r;l<=j+r;l++)
-           if((k-i)*(k-i)+(l-j)*(l-j)<=r*r)
-           {tshGradient[k][l][0]=120;tshGradient[k][l][1]=120;tshGradient[k][l][2]=120;}
-        }
-     } 
+         numCircle=0;
+         for(i=r;i<H-r;i++)
+         for(j=r;j<W-r;j++)
+         {
+            score=0;
+            /*BB=0;GG=0;RR=0;DD=0;
+            for(k=i-r;k<=i+r;k++)
+            for(l=j-r;l<=j+r;l++)
+            if((k-i)*(k-i)+(l-j)*(l-j)<=r*r)
+            {BB+=origin[k][l][0];GG+=origin[k][l][1];RR+=origin[k][l][2];DD++;}*/
+            
+            for(k=i-r;k<=i+r;k++)
+            for(l=j-r;l<=j+r;l++)
+            if((k-i)*(k-i)+(l-j)*(l-j)<=r*r){if(tshGradient[k][l][0]==255)score++;}
+            else{if(tshGradient[k][l][0]==0||tshGradient[k][l][0]==1)score++;}
+               
+            if(score*100>r*r*4*90)
+            {
+               numCircle++;
+               iBall = i;
+               jBall = j;               
+            }
+         }
+         if(numCircle==0){IBall=iBall;JBall=jBall;lastR=R;R=r;r=21;}
+     }
+     
+     int tshR=3;
+     if(R>tshR)
+     for(k=IBall-R;k<=IBall+R;k++)
+     for(l=JBall-R;l<=JBall+R;l++)
+     if((k-IBall)*(k-IBall)+(l-JBall)*(l-JBall)<=R*R)
+     {tshGradient[k][l][0]=120;tshGradient[k][l][1]=120;tshGradient[k][l][2]=120;}
+     
+     //if(lastR<tshR && R>tshR)
+     findOffsidePlayer();
 } 
+
+
 double round(double d)
 {
   return floor(d + 0.5);
@@ -252,21 +329,15 @@ bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r)
     return true;
 }
 
-bool isInSameGroup(Vec4i x, vector<Vec4i> groupLines) 
+bool isInSameGroup(Vec4i x, Vec4i L) 
 {
     double m,c;
-    const double trsh = 50.0;
-    for(int i=0; i<groupLines.size(); i++){
-        Vec4i L = groupLines[i];
-        L[1]*=-1; L[3]*=-1;
-        m = (double)(L[3]-L[1])/(L[2]-L[0]);
-        c = (double) L[1]-m*L[0];
-        if( ( x[1]>m*x[0]+c-trsh && x[1]<m*x[0]+c+trsh 
-            && x[3]>m*x[2]+c-trsh && x[3]<m*x[2]+c+trsh )
-            || ( x[1]<m*(x[0]+trsh)+c && x[1]>m*(x[0]-trsh)+c
-            && x[3]<m*(x[2]+trsh)+c && x[3]>m*(x[2]-trsh)+c )
-            ) return true;
-    }
+    const double t = 40.0;
+    if( (x[0]<L[0]+t || x[0]<L[2]+t) && (x[2]<L[0]+t || x[2]<L[2]+t)
+        && (x[0]>L[0]-t || x[0]>L[2]-t) && (x[2]>L[0]-t || x[2]>L[2]-t)
+        && (x[1]<L[1]+t || x[1]<L[3]+t) && (x[3]<L[1]+t || x[3]<L[3]+t)
+        && (x[1]>L[1]-t || x[1]>L[3]-t) && (x[3]>L[1]-t || x[3]>L[3]-t) )
+        return true;
     return false;
 }
 
@@ -279,7 +350,7 @@ void findVerticalLine()
         Vec4i L = lines[i];
         bool sameGroup=false;
         for(int j = 0; j < groupLines.size(); j++) {
-            if (isInSameGroup(L, groupLines[j])) {
+            if (isInSameGroup(L, groupLines[j][0])) {
                 groupLines[j].push_back(L);
                 sameGroup = true;
                 break;
@@ -433,14 +504,14 @@ int main(int argc, char** argv)
     const int reduce = 1;
     int i,j,k;
     
-    char const* avifile = "D:\\Google Drive\\SeniorProject\\video\\Arnautovic OFFSIDE GOAL!! vs Liverpool - Semifinal - Capital one Cup 2016 - cut.mp4";
+    char const* avifile = "D:\\Google Drive\\SeniorProject\\video\\Barcelona canceled goal vs Manchester City (WASN'T OFFSIDE) - cropped.mp4";
     capture = cvCaptureFromAVI(avifile);
     if(!capture)throw "Error when reading steam_avi";
     cvNamedWindow( "small", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "bw", CV_WINDOW_AUTOSIZE );
           
     
-    for(int framePointer=0 ; framePointer<200 ; ++framePointer)
+    for(framePointer=0 ; framePointer<200 ; ++framePointer)
     {
         frame = cvQueryFrame( capture );
         if(!frame)break;
@@ -495,7 +566,7 @@ int main(int argc, char** argv)
                                ));
         	
 		
-        const int tshGD =30;
+        const int tshGD =50;
         for(i=0; i<height ;i++)
         for(j=0; j<width ;j++)
         if(gradient[i][j][0]>tshGD && gradient[i][j][1]>tshGD && gradient[i][j][2]>tshGD) 
