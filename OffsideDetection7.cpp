@@ -1,4 +1,4 @@
- #include <stdio.h>
+#include <stdio.h>
 #include <cv.h>
 #include "highgui.h"
 #include <iostream>
@@ -7,6 +7,7 @@
 #include <math.h>
 #include <algorithm>
 #include <string>
+#include <time.h>
 #define PI 3.14159265
 #define Root2 1.4142135623
 #define Root3 1.7320508075
@@ -14,15 +15,14 @@ using namespace cv;
 using namespace std;
 
 // least line's slope that will be vertical
-const double vertSlopeTrsh = 0.31;
+const double vertSlopeTrsh = 0.3;
 // least pixels from margins that will be considered margins
 const int marginTrsh = 15;
 
 const int ballRTrsh = 3;
-const int grassTrsh = 120;
+const int grassTrsh = 0;
 const int tshGD =40;
 const double fontScale = 0.5;
-const int FRAMES_WANTED = 200;
 // offence directions
 const int NA = -1;
 const int LEFT = 0;
@@ -67,24 +67,30 @@ int numArea,numManySameTeam,R[10000],G[10000],B[10000],X[10000],Y[10000],team[10
 int thisR,lastR,iBall,jBall,IBall=-1,JBall=-1,lastI;
 int lastDFIndex;
 vector<int> offsidePlyrIndexes; 
+int offenseR,offenseG,offenseB;
 
 // returns a slope of a Vec4i line
 double slope(Vec4i L) {
     return (double) (L[1]-L[3])/(L[2]-L[0]+0.01);
 }
+
+double exec_time[16]={0.0}, offside_time=0.0; int step=0, all_steps=0, offside_count=0;
+clock_t x;
+void lap() {
+    exec_time[step++] += (double)(clock() - x) / CLOCKS_PER_SEC;
+    x = clock();   
+}
   
 void findOffsidePlayer()
 {
+     clock_t t = clock();
      int i,j,k,I,J,M,Count[10000];
      double min=-1.0,max1=1,max2=-1,min1=-1,min2=1;
      int max=-1,Max1=-1,Max2=-1,Min1=-1,Min2=-1;
-     //uncomment for anartovic
-     //if(lastR>=3) 
-     {for(i=0;i<numArea;i++)
-     if((abs(X[i]-JBall)+abs(Y[i]-IBall)<min||min==-1)&&team[i]!=-1){min=abs(X[i]-JBall)+abs(Y[i]-IBall);I=i;}}
-     //else{I=lastI;}
      
-     //lastI=I;
+     for(i=0;i<numArea;i++)
+     if((abs(R[i]-offenseR)+abs(G[i]-offenseG)+abs(B[i]-offenseB)<min||min==-1)&&team[i]!=-1)
+     {min=abs(R[i]-offenseR)+abs(G[i]-offenseG)+abs(B[i]-offenseB);I=i;}   
      
      for(i=0;i<numArea;i++)Count[i]=0;
      for(i=0;i<numArea;i++)if(team[i]!=team[I]&&team[i]!=-1)Count[team[i]]++;
@@ -95,10 +101,10 @@ void findOffsidePlayer()
         if(team[i]==team[J])
         {
            double m = ((double)(intPoint.y)+(double)(Y[i]))/((double)(intPoint.x)-(double)(X[i]));
-           char output[50];
-           snprintf(output,50,"%lf",m);
-           putText(myMat, output, Point(X[i]+10, Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, GRAY, 2 );
-           line(myMat,Point(intPoint.x,-intPoint.y),Point(X[i],Y[i]),PINK,1,CV_AA);
+           //char output[50];
+           //snprintf(output,50,"%lf",m);
+           //putText(myMat, output, Point(X[i]+10, Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, GRAY, 2 );
+           //line(myMat,Point(intPoint.x,-intPoint.y),Point(X[i],Y[i]),PINK,1,CV_AA);
            if(offenseDirection==1)
            {
               if(m<0){if(m>max1||max1==1){max1=m;Max1=i;}}
@@ -117,9 +123,9 @@ void findOffsidePlayer()
      
      lastDFIndex = M;
      
-     for(j=0;j<area[M];j++)
-     for(k=0;k<3;k++)
-     tshGradient[pI[M][j]][pJ[M][j]][k]=120; 
+     //for(j=0;j<area[M];j++)
+     //for(k=0;k<3;k++)
+     //tshGradient[pI[M][j]][pJ[M][j]][k]=120; 
      
      //printf("%d %d\n",X[J],Y[J]);
      
@@ -133,9 +139,9 @@ void findOffsidePlayer()
            {
               if((Max1==-1&&(m<0||m>max2))||(Max1!=-1&&m<0&&m>max1)) 
               {
-                  for(j=0;j<area[i];j++)
-                  for(k=0;k<3;k++)
-                  tshGradient[pI[i][j]][pJ[i][j]][k]=120;
+                  //for(j=0;j<area[i];j++)
+                  //for(k=0;k<3;k++)
+                  //tshGradient[pI[i][j]][pJ[i][j]][k]=120;
                   offsidePlyrIndexes.push_back(i);
               }
            }
@@ -143,14 +149,16 @@ void findOffsidePlayer()
            {
               if((Min1==-1&&(m>0||m<min2))||(Min1!=-1&&m>0&&m<min1)) 
               {
-                  for(j=0;j<area[i];j++)
-                  for(k=0;k<3;k++)
-                  tshGradient[pI[i][j]][pJ[i][j]][k]=120;
+                  //for(j=0;j<area[i];j++)
+                  //for(k=0;k<3;k++)
+                  //tshGradient[pI[i][j]][pJ[i][j]][k]=120;
                   offsidePlyrIndexes.push_back(i); 
               }
            }
         }
      }
+     //offside_count++;
+     //offside_time += (double)(clock() - t)/CLOCKS_PER_SEC;
 }
 
 
@@ -284,16 +292,16 @@ void findPlayer()
         rectangle(myMat, 
                   Point(X[MST]-Warea[MST],Y[MST]-Harea[MST]), 
                   Point(X[MST]+Warea[MST],Y[MST]+Harea[MST]/2), 
-                  WHITE,2,CV_AA,0);
+                  WHITE,1,CV_AA,0);
                   
                   
         if(team[MST]==J)          
         rectangle(myMat, 
                   Point(X[MST]-Warea[MST],Y[MST]-Harea[MST]), 
                   Point(X[MST]+Warea[MST],Y[MST]+Harea[MST]/2), 
-                  BLACK,2,CV_AA,0);
+                  BLACK,1,CV_AA,0);
                   
-        if(team[MST]==I)
+        /*if(team[MST]==I)
            for(j=X[MST];j<=X[MST]+50;j++)
            {tshGradient[Y[MST]][j][0]=120;tshGradient[Y[MST]][j][1]=120;tshGradient[Y[MST]][j][2]=120;
            tshGradient[Y[MST]-1][j][0]=120;tshGradient[Y[MST]-1][j][1]=120;tshGradient[Y[MST]-1][j][2]=120;
@@ -302,13 +310,13 @@ void findPlayer()
            for(j=Y[MST];j>=Y[MST]-50;j--)
            {tshGradient[j][X[MST]][0]=120;tshGradient[j][X[MST]][1]=120;tshGradient[j][X[MST]][2]=120;
            tshGradient[j][X[MST]-1][0]=120;tshGradient[j][X[MST]-1][1]=120;tshGradient[j][X[MST]-1][2]=120;
-           tshGradient[j][X[MST]+1][0]=120;tshGradient[j][X[MST]+1][1]=120;tshGradient[j][X[MST]+1][2]=120;}
+           tshGradient[j][X[MST]+1][0]=120;tshGradient[j][X[MST]+1][1]=120;tshGradient[j][X[MST]+1][2]=120;}*/
      }   
 }
 
 void findBall()
 {
-     int i,j,k,l,r,score,numCircle;
+     int i,j,k,l,r,score,numCircle,I,min=-1;
      int H=matSize.height;
      int W=matSize.width;
      
@@ -334,20 +342,15 @@ void findBall()
          if(numCircle==0){IBall=iBall;JBall=jBall;lastR=thisR;thisR=r-1;r=21;}
      }
      
-     // paint gray color on the ball in bw image
-     for(k=IBall-thisR;k<=IBall+thisR;k++)
-     for(l=JBall-thisR;l<=JBall+thisR;l++)
-     if((k-IBall)*(k-IBall)+(l-JBall)*(l-JBall)<=thisR*thisR)
-     {tshGradient[k][l][0]=120;tshGradient[k][l][1]=120;tshGradient[k][l][2]=120;}
-
-     if(thisR<ballRTrsh)findOffsidePlayer();
+     if(thisR<ballRTrsh) findOffsidePlayer();
+     else 
+     {
+        for(i=0;i<numArea;i++)
+        if((abs(X[i]-JBall)+abs(Y[i]-IBall)<min||min==-1)&&team[i]!=-1){min=abs(X[i]-JBall)+abs(Y[i]-IBall);I=i;}
+        offenseR=R[I];offenseG=G[I];offenseB=B[I];
+     }
 } 
 
-
-double round(double d)
-{
-  return floor(d + 0.5);
-}
 
 bool myfunction (Vec4i x,Vec4i y) { 
      double distX = sqrt( pow((double)x[0]-x[2],2) + pow((double)x[1]-x[3],2));
@@ -489,7 +492,7 @@ void findVerticalLine()
     Vec4i l;
 
     // find longest vertical line 
-    //sort(fieldLines.begin(), fieldLines.end(), sortBySlope);
+    sort(fieldLines.begin(), fieldLines.end(), myfunction);
     for(int i = 0; i < fieldLines.size(); i++) {
         l = fieldLines[i];            
         m = slope(l);
@@ -513,7 +516,7 @@ void findVerticalLine()
         o2 = Point2f(vertLines[1][0],-vertLines[1][1]);
         p2 = Point2f(vertLines[1][2],-vertLines[1][3]);
         intersection(o1, p1, o2, p2, intPoint);
-        if( //intPoint.x>0 && 
+        if( intPoint.x>0 && 
         intPoint.y>0 ) prevIntPoint = intPoint;
         else intPoint = prevIntPoint;
     } else parallel = true;
@@ -556,13 +559,21 @@ void findOffenseDirection() {
 }
 
 void printAndPaint() {
-    if( offenseDirection != NA ) {
+    /*if( offenseDirection != NA ) {
         if( offenseDirection == RIGHT ) cout<<"offense direction = RIGHT";
         else cout<<"offense direction = LEFT";
         cout<<endl;
     }
-    printf("ball: %d %d %d\n",IBall,JBall,thisR);
+    if( yLeftMargin == yRightMargin )  cout<<"seriously!? yLeft = yRight margin!\n";
+    //printf("ball: %d %d %d\n",IBall,JBall,thisR);
+    for(int k=IBall-thisR;k<=IBall+thisR;k++)
+     for(int l=JBall-thisR;l<=JBall+thisR;l++)
+     if((k-IBall)*(k-IBall)+(l-JBall)*(l-JBall)<=thisR*thisR)
+     {tshGradient[k][l][0]=120;tshGradient[k][l][1]=120;tshGradient[k][l][2]=120;}
     
+    if(parallel) cout<<"(parallel) slopes: "<<slope(vertLines[0])<<" "<<slope(vertLines[1])<<endl;
+    else cout<<"intersection point: "<<intPoint.x<<" "<<intPoint.y<<endl;
+    */
     Vec4i l; int x1,x2,y1,y2;
     
     for(int i = 0; i < fieldLines.size(); i++) {
@@ -572,25 +583,21 @@ void printAndPaint() {
         circle(myMat, Point(x1,y1), 3, BLUE, -1);
         circle(myMat, Point(x2,y2), 3, BLUE, -1);
     }
-
+    
     if(vertLines.size()<2 && prevVertLines.size()<2) 
         cout<<"find only "<<vertLines.size()<<" line\n";
     else { 
-        cout<<"2 vertical lines: \n";
+        //cout<<"2 vertical lines: \n";
         for(int i = 0; i < vertLines.size(); i++) {
             l = vertLines[i];
             x1=l[0]; y1=l[1]; x2=l[2]; y2=l[3];
             line(myMat,Point(x1,y1),Point(x2,y2),PURPLE,1,CV_AA);
             circle(myMat, Point(x1,y1), 3, BLUE, -1);
             circle(myMat, Point(x2,y2), 3, BLUE, -1);
-            cout<<x1<<" "<<y1<<" "<<x2<<" "<<y2<<endl;
+            //cout<<x1<<" "<<y1<<" "<<x2<<" "<<y2<<endl;
         }
     }
     
-    if(parallel) cout<<"(parallel) slopes: "<<slope(vertLines[0])<<" "<<slope(vertLines[1])<<endl;
-    else cout<<"intersection point: "<<intPoint.x<<" "<<intPoint.y<<endl;
-    if( yLeftMargin == yRightMargin )  cout<<"seriously!? yLeft = yRight margin!\n";
-    //cout<<"-----------------------------------------------------\n";
     
     if(thisR>=ballRTrsh)
         putText( myMat, "ball", Point(JBall,IBall), FONT_HERSHEY_SIMPLEX, fontScale, BLACK , 2 );
@@ -599,20 +606,24 @@ void printAndPaint() {
     
     int i=lastDFIndex;
     double m = ((double)(intPoint.y)+(double)(Y[i]))/((double)(intPoint.x)-(double)(X[i]));
-    char output[50];
-    snprintf(output,50,"%lf",m);
-    putText(myMat, output, Point(X[i]+10, Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, BLACK, 2 );
-    putText(myMat, "last DF", Point(X[i]-50, Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, WHITE, 2 );
-    line(myMat,Point(intPoint.x,-intPoint.y),Point(X[i],Y[i]),PINK,1,CV_AA);
-    
-    for(int j=0; j<offsidePlyrIndexes.size(); j++) {
-        i = offsidePlyrIndexes[j];
-        double m = ((double)(intPoint.y)+(double)(Y[i]))/((double)(intPoint.x)-(double)(X[i]));
-        snprintf(output,50,"%lf",m);
-        putText(myMat, output, Point(X[i]+10, Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, BLACK, 2 );
-        putText(myMat, "offside", Point(X[i]-50, Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, WHITE, 2 );
-        line(myMat,Point(intPoint.x,-intPoint.y),Point(X[i],Y[i]),LIGHTBLUE,1,CV_AA);
+    //char output[50];
+    //snprintf(output,50,"%lf",m);
+    //putText(myMat, output, Point(X[i]+10, Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, BLACK, 2 );
+    if(thisR<ballRTrsh) {
+        putText(myMat, "last DF", Point(X[i], Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, WHITE, 2 );
+        line(myMat,Point(intPoint.x,-intPoint.y),Point(X[i],Y[i]),LIGHTBLUE,1,CV_AA); 
+        for(int j=0; j<offsidePlyrIndexes.size(); j++) {
+            i = offsidePlyrIndexes[j];
+            //double m = ((double)(intPoint.y)+(double)(Y[i]))/((double)(intPoint.x)-(double)(X[i]));
+            //snprintf(output,50,"%lf",m);
+            //putText(myMat, output, Point(X[i]+10, Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, BLACK, 2 );
+            putText(myMat, "offside", Point(X[i], Y[i]), FONT_HERSHEY_SIMPLEX, fontScale, YELLOW, 2 );
+            line(myMat,Point(intPoint.x,-intPoint.y),Point(X[i],Y[i]),YELLOW,1,CV_AA);
+        }
     }
+    cout<<"int point: "<<intPoint.x<<" "<<intPoint.y<<endl;
+    
+    //cout<<"-----------------------------------------------------\n";
     
 }
 
@@ -632,31 +643,41 @@ int main(int argc, char** argv)
     int i,j,k;
     
     // for collecting results
-    int team[2][3]={0},lastDF[3]={0},offsidePlyr[3]={0},tp=0,fp=0,fn=0,countedFrame=0;
+    int team[2][3]={0},lastDF[3]={0},offsidePlyr[3]={0},tp=0,fp=0,fn=0,countedFrame=0,correctTeam=0;
     int ball[3]={0},intPt=0,b=0,skip=false,same=false;
-    int tp1=0,fp1=0,fn1=0,tp2=0,fp2=0,fn2=0,tp3=0,fp3=0,fn3=0,tp4=0,fp4=0,fn4=0,tp5=0,fp5=0,fn5=0,b1=0,b2=0;
-    
-    char const* avifile = "D:\\Google Drive\\SeniorProject\\video\\Lionel Messi is too intelligent for the offside trap-cropped.avi";
-    //Lionel Messi is too intelligent for the offside trap-cropped.avi
-    //Eibar vs Barcelona - cropped.mp4"
-    //Barcelona canceled goal vs Manchester City (WASN'T OFFSIDE) - cropped.mp4
+    int tp1=0,fp1=0,fn1=0,tp2=0,fp2=0,fn2=0,tp3=0,fp3=0,fn3=0,tp4=0,fp4=0,fn4=0,tp5=0,fp5=0,fn5=0,b1=0,b2=0,prevT=0,t=0;
+    int FRAMES_WANTED = 76;
+    const int FRAMES_WANTED_FOR_RESULT = 89;
+    FRAMES_WANTED = FRAMES_WANTED_FOR_RESULT;
+    char const* avifile = "D:\\Google Drive\\SeniorProject\\video\\Eibar vs Barcelona - cropped.mp4";
+    //Eibar vs Barcelona - cropped.mp4";
+    //Lionel Messi is too intelligent for the offside trap-cropped.avi";
     //Arnautovic OFFSIDE GOAL!! vs Liverpool - Semifinal - Capital one Cup 2016 - cut.mp4";
-     //xavi;
+    //(xavi killer pass)
+    //video-1460475664.mp4";
+    //Barcelona canceled goal vs Manchester City (WASN'T OFFSIDE) - cropped.mp4";
+    //--------------------------------not for testing, but for reporting--------------------------------
+    //John Terry vs Everton 15-16 HD - cut.mp4";
+    //Spain's Winning Goal Against Holland World Cup 2010! (Andres Iniesta)-cropped.avi";
+    //Barcelona Goal Wrongly Disallowed (For Offside) against Levante-cropped.avi";
+    //(WBA vs MANU)
+    //video-1460720785.mp4";
     
     capture = cvCaptureFromAVI(avifile);
     if(!capture)throw "Error when reading steam_avi";
     cvNamedWindow( "color", CV_WINDOW_AUTOSIZE );
     cvNamedWindow( "bw", CV_WINDOW_AUTOSIZE );
-          
+    
+
+    
     
     for(framePointer=0 ; framePointer<FRAMES_WANTED ; ++framePointer)
     {
-        frame = cvQueryFrame( capture );
+        step=0;
+        x = clock();
+        
+        frame = cvQueryFrame( capture ); //if(framePointer<24) continue;
         if(!frame)break;
-        
-        //cout<<framePointer<<endl;
-        if(framePointer < 24) continue;
-        
         CvSize size = cvSize(frame->width / reduce, frame->height / reduce);
         IplImage* tmpsize = cvCreateImage(size, frame->depth, frame->nChannels);
         cvResize(frame, tmpsize, CV_INTER_LINEAR);
@@ -675,6 +696,7 @@ int main(int argc, char** argv)
 		for(k=0; k<3 ;k++)
 		origin[i][j][k]=myMat.at<cv::Vec3b>(i,j)[k];
 		
+        lap();
         
         for(i=2; i<height-2 ;i++)
         for(j=2; j<width-2 ;j++)
@@ -688,6 +710,7 @@ int main(int argc, char** argv)
                             + 4*(origin[i-2][j-1][k]+origin[i-2][j+1][k]+origin[i+2][j-1][k]+origin[i+2][j+1][k]+origin[i-1][j-2][k]+origin[i+1][j-2][k]+origin[i-1][j+2][k]+origin[i+1][j+2][k])
                             ) /273;       
         
+        lap();
 
         for(i=0; i<height ;i++) 
         for(j=0; j<width ;j++) 
@@ -695,7 +718,8 @@ int main(int argc, char** argv)
         //{grass[i][j][0]=255;grass[i][j][1]=255;grass[i][j][2]=255;}
         {grass[i][j][0]=gaussian[i][j][0];grass[i][j][1]=gaussian[i][j][1];grass[i][j][2]=gaussian[i][j][2];}
         else {grass[i][j][0]=0;grass[i][j][1]=0;grass[i][j][2]=0;}
-         
+        
+        lap(); 
 			
         for(i=1; i<height ;i++)
         for(j=1; j<width ;j++)
@@ -708,7 +732,8 @@ int main(int argc, char** argv)
                                (double) (grass[i+1][j+1][k]+grass[i+1][j-1][k]+grass[i+1][j][k]*2-grass[i-1][j-1][k]-grass[i-1][j+1][k]-grass[i-1][j][k]*2)
                                , 2.0) 
                                ));
-        	
+        
+        lap();	
 		
         for(i=0; i<height ;i++)
         for(j=0; j<width ;j++)
@@ -716,62 +741,66 @@ int main(int argc, char** argv)
         {tshGradient[i][j][0]=255;tshGradient[i][j][1]=255;tshGradient[i][j][2]=255;}
         else {tshGradient[i][j][0]=0;tshGradient[i][j][1]=0;tshGradient[i][j][2]=0;}
         
+        
 
         Mat bw_image (height, width, CV_8UC1);
 		for(i=0; i<height ;i++)
 		for(j=0; j<width ;j++)
         bw_image.at<uchar>(i,j) = tshGradient[i][j][0];
         
+        lap();
         HoughLinesP(bw_image, lines, 5, CV_PI/180, 100, 100, 10 );
-        
+        lap();
         findVerticalLine();
-        
+        lap();
         findOffenseDirection();
-        
+        lap();
         findPlayer();
-        
+        lap();
         findBall(); 
-        
+        lap();
         printAndPaint();
-        
+        lap();
         for(i=0; i<matSize.height ;i++)
         for(j=0; j<matSize.width ;j++)
         for(k=0; k<3 ;k++)
         bw_image.at<uchar>(i,j) = tshGradient[i][j][k];
         imshow("color", myMat);
         imshow("bw", bw_image);
-        
+        lap();
         lines.clear();
         fieldLines.clear();
         vertLines.clear();
         groupLines.clear();
         parallel = false;
         offsidePlyrIndexes.clear(); 
-        
-        // collect results
-        //skip = false; 
-        same = false; b=0; tp=0;fp=0;fn=0;
-        cout<<"::::::::::::::::::RESULTS::::::::::::::::::"<<endl;
+        /*
+        // type results
+        same = false; b=0; tp=0;fp=0;fn=0; t=0;
+        cout<<"::::::::::::::::::RESULTS ("<<countedFrame<<"/"<<framePointer<<") ::::::::::::::::::"<<endl;
         if(framePointer==0) skip = true;
         if(framePointer==1) skip = false;
-        if(framePointer>90 && !skip) { 
-                            cout<<"*** skip? 1/0 ***: "; cin>>skip; 
+        if(framePointer>FRAMES_WANTED_FOR_RESULT && !skip) { 
+                            cout<<"\n*** skip? 1/0 ***: "; cin>>skip; 
                             }
         
         if(!skip) {
             countedFrame++;
             cout<<"same? (1/0): "; cin>>same;
             if(same) {
+                //correctTeam+=prevT;
                 team[0][0]+=tp1; team[0][1]+=fp1; team[0][2]+=fn1;
                 team[1][0]+=tp2; team[1][1]+=fp2; team[1][2]+=fn2;
                 intPt+=b1;
-                ball[0]+=tp5; ball[1]+=tp5; ball[2]+=tp5;
+                ball[0]+=tp5; ball[1]+=fp5; ball[2]+=fn5;
                 if(!b2) {
                     lastDF[0]+=tp3; lastDF[1]+=fp3; lastDF[2]+=fn3;
                     offsidePlyr[0]+=tp4; offsidePlyr[1]+=fp4; offsidePlyr[2]+=fn4;
                 }
             }
             else {
+                //cout<<"classify team correctly? (1/0): "; cin>>t;
+                //correctTeam+=t; prevT=t;
                 cout<<"team 1 (Tp Fp Fn): "; cin>>tp>>fp>>fn; 
                 team[0][0]+=tp; team[0][1]+=fp; team[0][2]+=fn;
                 tp1=tp; fp1=fp; fn1=fn;
@@ -793,17 +822,22 @@ int main(int argc, char** argv)
                     tp4=tp; fp4=fp; fn4=fn;
                 }
             }
-        }
+        }*/
+        
+        if(step > all_steps) all_steps = step;
         
         key = cvWaitKey(63);
         if(key==27)break;
     }
-    
+    /*
     // show results
     cout<<"\n\n\n=================ALL RESULTS=================\n\n";
     cout<<"counted frames: "<<countedFrame<<"\n\n";
     
     cout.precision(3);
+    
+    //cout<<"classify team correctly? (T F): " <<correctTeam<<" "<<countedFrame-correctTeam<<endl;
+    //cout<<"accuracy = "<<fixed<<(double)correctTeam*100/countedFrame<<"%"<<"\n\n";
     
     tp=team[0][0]; fp=team[0][1]; fn=team[0][2];
     cout<<"team 1 (Tp Fp Fn): "<<tp<<" "<<fp<<" "<<fn<<endl;
@@ -827,7 +861,14 @@ int main(int argc, char** argv)
     tp=offsidePlyr[0]; fp=offsidePlyr[1]; fn=offsidePlyr[2];
     cout<<"offside player(s) (Tp Fp Fn): "<<tp<<" "<<fp<<" "<<fn<<endl;
     cout<<"P = "<<fixed<<(double)tp/(tp+fp)<<", R = "<<fixed<<(double)tp/(tp+fn)<<"\n\n";
-   
+    */
+    double sum=0.0;
+    for(int i=0; i<all_steps; i++) {
+        cout<<exec_time[i]/FRAMES_WANTED_FOR_RESULT<<endl;
+        sum+=exec_time[i];
+    }
+    //cout<<"offside: "<<offside_time/(double)offside_count<<endl;
+    cout<<"average exec time per frame: "<<sum;
    
     cvWaitKey(0); 
     cvDestroyWindow("bw");
@@ -835,5 +876,3 @@ int main(int argc, char** argv)
     cvReleaseImage(&frame);
     cvReleaseCapture( &capture );
 }
-
-
